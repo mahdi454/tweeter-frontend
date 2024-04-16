@@ -4,23 +4,20 @@ import { RiAppleFill, RiTwitterXLine } from "react-icons/ri";
 import { Link, Outlet } from "react-router-dom";
 import MaxWidthWrapper from "../components/MaxWidthWrapper";
 
-
 export default function Login() {
   return (
     <>
       <Outlet />
       <MaxWidthWrapper>
         <div className="grid lg:grid-cols-12 lg:h-screen place-content-center  lg:space-x-16">
-          <div className=" lg:col-span-6 lg:ml-20 flex items-center justify-between mt-10 ">
-            <span className="text-5xl lg:text-[350px] lg:ml-10 ">
+          <div className=" lg:col-span-6 lg:ml-20 flex items-center justify-between mt-5 ">
+            <span className="text-4xl lg:text-[350px] lg:ml-10 ">
               <RiTwitterXLine />
             </span>
-            <span className="flex self-start lg:mt-3">
-              <ModeToggle />
-            </span>
+        
           </div>
           <div className="lg:col-span-6 ">
-            <h1 className="text-5xl sm:text-6xl tracking-wider font-extrabold my-10">
+            <h1 className="text-5xl sm:text-6xl tracking-wider font-extrabold my-5">
               Happenning <br className="lg:hidden" />
               now
             </h1>

@@ -1,25 +1,36 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { RiAppleFill, RiTwitterXLine } from "react-icons/ri";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { useLoginMutation } from "../features/auth/authApiSlice";
-import { setCredentials } from "../features/auth/authSlice";
-import { X } from "lucide-react";
+import { setCredentials } from "./authSlice";
+import { ArrowLeft, X } from "lucide-react";
+import { string } from "zod";
+import { useLoginMutation } from "@/app/api/authApi";
+import usePersist from "@/hooks/usePersist";
+import { toast } from "react-toastify";
+import Loader from "@/components/Loader";
 
-type Props = {};
+const emailSchema = string()
+  .min(1, "Email address is required")
+  .email("Email Address is invalid");
 
-export default function Signn({}: Props) {
+export default function SignIn() {
   const [show, setShow] = useState(false);
   const [next, setNext] = useState(1);
+  const errRef = useRef<HTMLParagraphElement | null>(null);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const errRef = useRef<HTMLParagraphElement | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPwd] = useState("");
   const [errMsg, setErrMsg] = useState("");
-  const [login] = useLoginMutation();
+  const [persist, setPersist] = usePersist();
+  const [login, { isLoading }] = useLoginMutation();
 
+  useEffect(() => {
+    setErrMsg("");
+  }, [email, password]);
   const handleLogin = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
@@ -27,35 +38,57 @@ export default function Signn({}: Props) {
       e.preventDefault();
       const { accessToken } = await login({ email, password }).unwrap();
       dispatch(setCredentials({ accessToken }));
-      console.log(accessToken);
+      toast.success("You successfully logged in");
       setEmail("");
       setPwd("");
       navigate("/");
     } catch (error: any) {
       if (!error.status) {
-        setErrMsg("No Server Response");
+        toast.error("No Server Response");
       } else if (error.status === 400) {
-        setErrMsg("Missing Username or Password");
-      } else if (error.status === 401) {
-        setErrMsg("Unauthorized");
+        setErrMsg("Missing Password");
       } else {
-        setErrMsg(error.data?.message);
+        toast.error(error.data?.message);
       }
       errRef.current?.focus();
     }
   };
+  const handleNext = (
+    e: React.FormEvent<HTMLFormElement>
+    ) => {
+    try {
+      e.preventDefault();
+      emailSchema.parse(email);
+      setNext((pre) => pre + 1);
+    } catch (error: any) {
+      setErrMsg("Please provide a valid email!");
+      errRef.current?.focus();
+    }
+  };
+
   return (
     <div className="fixed top-0 left-0 h-screen w-full backdrop-blur-[1px] z-20">
-      <div className=" w-full h-screen bg-slate-200 dark:bg-black sm:absolute sm:top-[50%] sm:left-[50%] sm:w-[580px] sm:h-[670px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl">
+      <div className=" w-full h-screen bg-slate-200 dark:bg-black sm:absolute sm:top-[50%] sm:left-[50%] sm:w-[520px] sm:h-[620px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-xl">
         <div className="relative">
-          <button
-            className="absolute text-2xl  top-3 left-3 p-1.5 dark:hover:bg-slate-800 active:bg-slate-800 rounded-full hover:bg-slate-300 "
-            onClick={() => {
-              setShow(!show), navigate("..");
-            }}
-          >
-            <X />
-          </button>
+          {next === 1 ? (
+            <button
+              className="absolute text-2xl  top-3 left-3 p-1.5 hover:bg-slate-300 rounded-full dark:hover:bg-slate-800"
+              onClick={() => {
+                setShow(!show), navigate("..");
+              }}
+            >
+              <X />
+            </button>
+          ) : (
+            <button
+              className="absolute text-2xl  top-3 left-3 p-1.5 hover:bg-slate-300 dark:hover:bg-slate-800 rounded-full"
+              onClick={() => {
+                setNext((pre) => pre - 1);
+              }}
+            >
+              <ArrowLeft />
+            </button>
+          )}
         </div>
         <div className="flex justify-center pt-4 text-3xl">
           <span>
@@ -69,7 +102,7 @@ export default function Signn({}: Props) {
                 Sign in to X
               </h1>
             </div>
-            <form className="flex flex-col gap-4 w-[300px] mx-auto">
+            <form onSubmit={handleNext} className="flex flex-col gap-4 w-[300px] mx-auto">
               <div className="relative hover:opacity-75">
                 <button className=" text-gray-700 w-full  bg-slate-200 border-slate-600 border py-2 pl-5 rounded-full hover:bg-slate-50 ">
                   Contentue with Google
@@ -94,9 +127,8 @@ export default function Signn({}: Props) {
               <div className="relative  z-0 w-full group">
                 <input
                   type="text"
-                  name="password"
+                  name="email"
                   autoComplete="off"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder=""
@@ -106,14 +138,16 @@ export default function Signn({}: Props) {
                   {" "}
                   Email
                 </label>
+                {errMsg && (
+                  <span ref={errRef} className="text-red-700 pt-1">
+                    {" "}
+                    {errMsg}
+                  </span>
+                )}
               </div>
               <div className="relative mt-2 hover:opacity-75 ">
                 <button
                   className=" text-black w-full bg-slate-200 py-1.5 pl-5 rounded-full hover:bg-slate-50 border border-slate-600 "
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setNext((pre) => pre + 1);
-                  }}
                 >
                   Next
                 </button>
@@ -135,28 +169,28 @@ export default function Signn({}: Props) {
             </form>
           </div>
         )}
-                {next === 2 && (
+        {next === 2 && (
           <div className={`flex flex-col w-full mt-16`}>
             <div className="mx-auto ">
               <h1 className="text-[22px] font-black mb-7 ml-2 mx-24">
                 Enter your password
               </h1>
             </div>
-            <form className="flex flex-col gap-6 w-[360px] mx-auto px-5">
+            <form className="flex flex-col gap-6 w-[400px] mx-auto px-5">
               <div className="relative  z-0 w-full group">
                 <input
-                  type="text"
-                  name="password"
+                  type="email"
+                  name="email"
                   autoComplete="off"
                   required
                   defaultValue={email}
                   placeholder=""
-                  className="input peer opacity-30"
+                  className="input peer disabled:opacity-30"
                   disabled
                 />
                 <label htmlFor="email" className=" label ">
                   {" "}
-                   Email
+                  Email
                 </label>
               </div>
               <div className="relative  z-0 w-full group">
@@ -174,19 +208,42 @@ export default function Signn({}: Props) {
                   {" "}
                   Password
                 </label>
+                {errMsg && (
+                  <span ref={errRef} className="text-red-700 pt-1">
+                    {" "}
+                    {errMsg}
+                  </span>
+                )}
               </div>
-              <p ref={errRef} aria-live="assertive">
-                {errMsg}
-              </p>
-              <div className="relative mt-20 hover:opacity-70 ">
+              <label htmlFor="persist" className="flex gap-1">
+                <input
+                  type="checkbox"
+                  id="persist"
+                  onChange={() => setPersist(!persist)}
+                  checked={persist}
+                />
+                Trust This Device
+              </label>
+
+              <div className="relative mt-10 hover:opacity-70 ">
                 <button
-                  className=" text-black w-full text-lg bg-slate-200 border border-slate-600 py-2 pl-5 rounded-full hover:bg-slate-50"
+                  className=" text-black w-full text-lg bg-slate-200 border border-slate-600 py-2  rounded-full hover:bg-slate-50"
                   onClick={handleLogin}
                 >
-                  Log in
+                  {isLoading ? (
+                    <Loader
+                      color="#0f93df"
+                      loading={true}
+                      circleSize={3}
+                      isFull={false}
+                      className="justify-center gap-5 py-2 "
+                    />
+                  ) : (
+                    <span>Log in</span>
+                  )}
                 </button>
               </div>
-              <p className="text-slate-500">
+              <p className="text-slate-500 w-full ml-5 ">
                 Don't have an account?{" "}
                 <Link
                   to="/login/sign-up"
